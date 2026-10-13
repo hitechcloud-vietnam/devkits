@@ -1,0 +1,6 @@
+extensions:
+  devkits:
+    type: streamable_http
+    uri: https://devkits.hitechcloud.vn/api/mcp
+    headers:
+      Authorization: "Bearer <DEVKITS_MCP_TOKEN>"

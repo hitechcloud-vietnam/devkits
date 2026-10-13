@@ -1,0 +1,12 @@
+{
+  "inputs": [
+    { "type": "promptString", "id": "devkits-token", "description": "DevKits MCP token", "password": true }
+  ],
+  "servers": {
+    "devkits": {
+      "type": "http",
+      "url": "https://devkits.hitechcloud.vn/api/mcp",
+      "headers": { "Authorization": "Bearer ${input:devkits-token}" }
+    }
+  }
+}

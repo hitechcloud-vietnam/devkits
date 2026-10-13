@@ -1,0 +1,22 @@
+{
+  "name": "devkits",
+  "version": "0.1.0",
+  "description": "HiTechCloud DevKits: MCP tools and skills for building, auditing and shipping HostBill, WHMCS and WordPress integrations with any AI agent.",
+  "contextFileName": "GEMINI.md",
+  "mcpServers": {
+    "devkits": {
+      "httpUrl": "https://devkits.hitechcloud.vn/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${DEVKITS_MCP_TOKEN}"
+      }
+    }
+  },
+  "settings": [
+    {
+      "name": "DevKits MCP token",
+      "description": "Personal token from devkits.hitechcloud.vn → Kết nối agent.",
+      "envVar": "DEVKITS_MCP_TOKEN",
+      "sensitive": true
+    }
+  ]
+}

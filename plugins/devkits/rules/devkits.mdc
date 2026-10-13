@@ -1,0 +1,8 @@
+---
+description: How to work with HiTechCloud DevKits tools and skills
+alwaysApply: false
+---
+
+- DevKits MCP tools are read-only. Use them to ground answers about the DevKits repository, Vercel deployments and workspace health instead of guessing.
+- Never claim a deployment, merge, DNS or credential change happened unless a tool result shows it; propose the exact steps for a human instead.
+- For billing-platform work (HostBill, WHMCS, WordPress) follow the matching DevKits skill: module development, audit, bug fix, conversion, deployment.

@@ -1,0 +1,221 @@
+{
+  "$comment": "Single source for per-platform install instructions. scripts/build-integrations.mjs renders integrations/README.md and integrations/configs/* from this file; the web UI reads it too. {{URL}} = MCP endpoint, {{REPO}} = GitHub repo, {{TOKEN_ENV}} = token env var. 'verified' = checked against the vendor's official docs on 2026-10-14.",
+  "mcpUrl": "https://devkits.hitechcloud.vn/api/mcp",
+  "repo": "hitechcloud-vietnam/devkits",
+  "tokenEnv": "DEVKITS_MCP_TOKEN",
+  "platforms": [
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "group": "plugin",
+      "package": "Plugin + marketplace (plugins/devkits)",
+      "verified": true,
+      "docs": "https://code.claude.com/docs/en/plugin-marketplaces",
+      "install": [
+        { "label": "Một bước (Claude Code 2.1.275 trở lên, gõ trong Claude Code)", "lang": "text", "code": "/plugin install devkits --marketplace {{REPO}}" },
+        { "label": "Hoặc hai bước", "lang": "text", "code": "/plugin marketplace add {{REPO}}\n/plugin install devkits@devkits" },
+        { "label": "Hoặc từ terminal", "lang": "bash", "code": "claude plugin marketplace add {{REPO}}\nclaude plugin install devkits@devkits" }
+      ],
+      "notes": ["Khi bật plugin, Claude Code hỏi token DevKits và cất vào kho bí mật của máy (userConfig sensitive).", "Kiểm tra: gõ /mcp, thấy devkits đã kết nối."],
+      "mcpOnly": { "label": "Chỉ thêm MCP", "lang": "bash", "code": "claude mcp add --transport http devkits {{URL}} \\\n  --header \"Authorization: Bearer ${{TOKEN_ENV}}\"" }
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "group": "plugin",
+      "package": "Cursor plugin + marketplace (plugins/devkits/.cursor-plugin)",
+      "verified": true,
+      "docs": "https://cursor.com/docs/reference/plugins",
+      "install": [
+        { "label": "Nhóm/doanh nghiệp: Dashboard → Plugins & MCPs → Import from Repo", "lang": "text", "code": "https://github.com/{{REPO}}" },
+        { "label": "Cài MCP một chạm (mở link trong trình duyệt)", "lang": "text", "code": "{{CURSOR_DEEPLINK}}" }
+      ],
+      "notes": ["Plugin khai báo biến DEVKITS_MCP_TOKEN; quản trị viên nhập giá trị ở Dashboard → Plugins → Configure.", "Link một chạm không chứa token: sau khi cài, đặt biến môi trường DEVKITS_MCP_TOKEN."],
+      "mcpOnly": { "label": "Chỉ thêm MCP: .cursor/mcp.json hoặc ~/.cursor/mcp.json", "lang": "json", "file": "cursor.mcp.json", "code": "{\n  \"mcpServers\": {\n    \"devkits\": {\n      \"url\": \"{{URL}}\",\n      \"headers\": { \"Authorization\": \"Bearer ${env:{{TOKEN_ENV}}}\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "codex",
+      "name": "OpenAI Codex",
+      "group": "plugin",
+      "package": "Agent Plugin + marketplace (.agents/plugins/marketplace.json)",
+      "verified": true,
+      "docs": "https://developers.openai.com/codex/plugins/build/",
+      "install": [
+        { "label": "Thêm marketplace", "lang": "bash", "code": "codex plugin marketplace add {{REPO}}" },
+        { "label": "Cài: mở /plugins trong Codex (hoặc Plugins Directory của ChatGPT desktop), chọn DevKits", "lang": "text", "code": "/plugins" }
+      ],
+      "notes": ["Plugin khai báo xác thực API key dạng bearer; Codex hỏi token lúc cài (ON_INSTALL)."],
+      "mcpOnly": { "label": "Chỉ thêm MCP: ~/.codex/config.toml", "lang": "toml", "file": "codex.config.toml", "code": "[mcp_servers.devkits]\nurl = \"{{URL}}\"\nbearer_token_env_var = \"{{TOKEN_ENV}}\"" }
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode",
+      "group": "mcp",
+      "package": "Cấu hình MCP + skills",
+      "verified": true,
+      "docs": "https://opencode.ai/docs/mcp-servers/",
+      "install": [
+        { "label": "Thêm skills DevKits cho mọi dự án", "lang": "bash", "code": "git clone --depth 1 https://github.com/{{REPO}} /tmp/devkits\nmkdir -p ~/.config/opencode/skills\ncp -r /tmp/devkits/skills/* ~/.config/opencode/skills/" }
+      ],
+      "notes": ["OpenCode cũng đọc skills ở .agents/skills và .claude/skills."],
+      "mcpOnly": { "label": "opencode.json (gốc dự án) hoặc ~/.config/opencode/opencode.json", "lang": "json", "file": "opencode.json", "code": "{\n  \"$schema\": \"https://opencode.ai/config.json\",\n  \"mcp\": {\n    \"devkits\": {\n      \"type\": \"remote\",\n      \"url\": \"{{URL}}\",\n      \"enabled\": true,\n      \"oauth\": false,\n      \"headers\": { \"Authorization\": \"Bearer {env:{{TOKEN_ENV}}}\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "antigravity",
+      "name": "Google Antigravity",
+      "group": "plugin",
+      "package": "Agent Plugin (gốc repo)",
+      "verified": true,
+      "docs": "https://antigravity.google/docs/plugins",
+      "install": [
+        { "label": "Cài plugin bằng agy CLI", "lang": "bash", "code": "agy plugin install https://github.com/{{REPO}}" },
+        { "label": "Hoặc trong IDE: Customizations → Marketplace", "lang": "text", "code": "https://github.com/{{REPO}}" }
+      ],
+      "notes": ["Antigravity không hỗ trợ biến môi trường trong cấu hình MCP: dán token trực tiếp vào mcp_config.json của máy, không commit file đó."],
+      "mcpOnly": { "label": "~/.gemini/config/mcp_config.json (hoặc .agents/mcp_config.json)", "lang": "json", "file": "antigravity.mcp_config.json", "code": "{\n  \"mcpServers\": {\n    \"devkits\": {\n      \"serverUrl\": \"{{URL}}\",\n      \"headers\": { \"Authorization\": \"Bearer <DEVKITS_MCP_TOKEN>\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "zcode",
+      "name": "ZCode (Z.ai)",
+      "group": "plugin",
+      "package": "Plugin định dạng Claude Code (plugins/devkits)",
+      "verified": true,
+      "docs": "https://zcode.z.ai/en/docs/plugin",
+      "install": [
+        { "label": "Settings → Plugins → Add marketplace, nhập repo rồi Install DevKits", "lang": "text", "code": "{{REPO}}" }
+      ],
+      "notes": ["ZCode đọc .claude-plugin/plugin.json và hỏi token qua userConfig.", "Vị trí marketplace.json mà ZCode tìm (gốc hay .claude-plugin/) chưa được tài liệu nói rõ."],
+      "mcpOnly": { "label": "Chỉ thêm MCP: <dự án>/.zcode/config.json, khoá mcp.servers (khoá trường chưa xác minh)", "lang": "json", "file": "zcode.mcp.json", "code": "{\n  \"mcpServers\": {\n    \"devkits\": {\n      \"type\": \"http\",\n      \"url\": \"{{URL}}\",\n      \"headers\": { \"Authorization\": \"Bearer <DEVKITS_MCP_TOKEN>\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "vscode",
+      "name": "VS Code · GitHub Copilot",
+      "group": "plugin",
+      "package": "Agent plugin (đọc plugin.json hoặc .claude-plugin)",
+      "verified": true,
+      "docs": "https://code.visualstudio.com/docs/copilot/customization/agent-plugins",
+      "install": [
+        { "label": "Command Palette → Chat: Install Plugin From Source, nhập", "lang": "text", "code": "https://github.com/{{REPO}}" },
+        { "label": "Hoặc thêm marketplace vào settings.json", "lang": "json", "code": "\"chat.plugins.marketplaces\": [\"{{REPO}}\"]" }
+      ],
+      "notes": ["Bật chat.useAgentsMdFile để Copilot đọc AGENTS.md."],
+      "mcpOnly": { "label": ".vscode/mcp.json (hỏi token khi khởi động, không lưu vào file)", "lang": "json", "file": "vscode.mcp.json", "code": "{\n  \"inputs\": [\n    { \"type\": \"promptString\", \"id\": \"devkits-token\", \"description\": \"DevKits MCP token\", \"password\": true }\n  ],\n  \"servers\": {\n    \"devkits\": {\n      \"type\": \"http\",\n      \"url\": \"{{URL}}\",\n      \"headers\": { \"Authorization\": \"Bearer ${input:devkits-token}\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "gemini-cli",
+      "name": "Gemini CLI",
+      "group": "plugin",
+      "package": "Extension (gemini-extension.json ở gốc repo)",
+      "verified": true,
+      "docs": "https://geminicli.com/docs/extensions/reference/",
+      "install": [
+        { "label": "Cài extension", "lang": "bash", "code": "gemini extensions install https://github.com/{{REPO}} --auto-update" }
+      ],
+      "notes": ["Extension hỏi token (setting nhạy cảm, map vào DEVKITS_MCP_TOKEN).", "Người dùng Antigravity CLI chuyển extension sang bằng: agy plugin import gemini."],
+      "mcpOnly": { "label": "~/.gemini/settings.json", "lang": "bash", "code": "gemini mcp add --transport http \\\n  --header \"Authorization: Bearer ${{TOKEN_ENV}}\" devkits {{URL}}" }
+    },
+    {
+      "id": "kiro",
+      "name": "Kiro",
+      "group": "plugin",
+      "package": "Power (Agent Plugin ở gốc repo)",
+      "verified": true,
+      "docs": "https://kiro.dev/docs/powers/create/",
+      "install": [
+        { "label": "Powers → Add Custom Power → Import power from GitHub", "lang": "text", "code": "https://github.com/{{REPO}}" }
+      ],
+      "notes": ["Thêm DEVKITS_MCP_TOKEN vào danh sách Mcp Approved Env Vars của Kiro."],
+      "mcpOnly": { "label": ".kiro/settings/mcp.json hoặc ~/.kiro/settings/mcp.json", "lang": "json", "file": "kiro.mcp.json", "code": "{\n  \"mcpServers\": {\n    \"devkits\": {\n      \"url\": \"{{URL}}\",\n      \"headers\": { \"Authorization\": \"Bearer ${{{TOKEN_ENV}}}\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "devin",
+      "name": "Devin Desktop (Windsurf)",
+      "group": "mcp",
+      "package": "Cấu hình MCP",
+      "verified": true,
+      "docs": "https://docs.devin.ai/desktop/cascade/mcp",
+      "install": [],
+      "notes": ["Chưa có marketplace hay cài một chạm cho MCP."],
+      "mcpOnly": { "label": "~/.config/devin/mcp_config.json (Windows: %APPDATA%\\devin\\mcp_config.json)", "lang": "json", "file": "devin.mcp_config.json", "code": "{\n  \"mcpServers\": {\n    \"devkits\": {\n      \"serverUrl\": \"{{URL}}\",\n      \"headers\": { \"Authorization\": \"Bearer ${env:{{TOKEN_ENV}}}\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "cline",
+      "name": "Cline",
+      "group": "mcp",
+      "package": "Cấu hình MCP",
+      "verified": true,
+      "docs": "https://docs.cline.bot/mcp/configuring-mcp-servers",
+      "install": [],
+      "notes": ["Phải ghi type streamableHttp, bỏ trống thì Cline dùng SSE cũ."],
+      "mcpOnly": { "label": "cline_mcp_settings.json (Configure MCP Servers)", "lang": "json", "file": "cline.mcp.json", "code": "{\n  \"mcpServers\": {\n    \"devkits\": {\n      \"type\": \"streamableHttp\",\n      \"url\": \"{{URL}}\",\n      \"headers\": { \"Authorization\": \"Bearer <DEVKITS_MCP_TOKEN>\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "roo",
+      "name": "Roo Code",
+      "group": "mcp",
+      "package": "Cấu hình MCP",
+      "verified": true,
+      "docs": "https://roocodeinc.github.io/Roo-Code/features/mcp/using-mcp-in-roo",
+      "install": [],
+      "notes": [],
+      "mcpOnly": { "label": ".roo/mcp.json hoặc mcp_settings.json", "lang": "json", "file": "roo.mcp.json", "code": "{\n  \"mcpServers\": {\n    \"devkits\": {\n      \"type\": \"streamable-http\",\n      \"url\": \"{{URL}}\",\n      \"headers\": { \"Authorization\": \"Bearer <DEVKITS_MCP_TOKEN>\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "zed",
+      "name": "Zed",
+      "group": "mcp",
+      "package": "Context server",
+      "verified": true,
+      "docs": "https://zed.dev/docs/ai/mcp",
+      "install": [],
+      "notes": [],
+      "mcpOnly": { "label": "settings.json của Zed", "lang": "json", "file": "zed.settings.json", "code": "{\n  \"context_servers\": {\n    \"devkits\": {\n      \"url\": \"{{URL}}\",\n      \"headers\": { \"Authorization\": \"Bearer <DEVKITS_MCP_TOKEN>\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "amp",
+      "name": "Amp",
+      "group": "mcp",
+      "package": "Cấu hình MCP",
+      "verified": true,
+      "docs": "https://ampcode.com/docs/customize/mcp",
+      "install": [],
+      "notes": [],
+      "mcpOnly": { "label": ".amp/settings.json hoặc ~/.config/amp/settings.json", "lang": "json", "file": "amp.settings.json", "code": "{\n  \"amp.mcpServers\": {\n    \"devkits\": {\n      \"url\": \"{{URL}}\",\n      \"headers\": { \"Authorization\": \"Bearer ${{{TOKEN_ENV}}}\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "goose",
+      "name": "Goose",
+      "group": "mcp",
+      "package": "Extension cấu hình",
+      "verified": false,
+      "docs": "https://goose-docs.ai/docs/guides/config-files",
+      "install": [],
+      "notes": ["Cách Goose đọc biến môi trường cho header chưa xác minh."],
+      "mcpOnly": { "label": "~/.config/goose/config.yaml", "lang": "yaml", "file": "goose.config.yaml", "code": "extensions:\n  devkits:\n    type: streamable_http\n    uri: {{URL}}\n    headers:\n      Authorization: \"Bearer <DEVKITS_MCP_TOKEN>\"" }
+    },
+    {
+      "id": "claude-desktop",
+      "name": "Claude Desktop · claude.ai",
+      "group": "mcp",
+      "package": "Connector tuỳ chỉnh",
+      "verified": true,
+      "docs": "https://claude.com/docs/connectors/custom/add-unlisted",
+      "install": [
+        { "label": "Customize → Connectors → Add custom connector, URL", "lang": "text", "code": "{{URL}}" }
+      ],
+      "notes": ["Header tuỳ chỉnh (Authorization: Bearer …) đang beta cho một số tổ chức. Chưa có thì dùng cầu nối mcp-remote bên dưới."],
+      "mcpOnly": { "label": "claude_desktop_config.json qua cầu nối mcp-remote", "lang": "json", "file": "mcp-remote.json", "code": "{\n  \"mcpServers\": {\n    \"devkits\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"mcp-remote\", \"{{URL}}\", \"--header\", \"Authorization:${AUTH_HEADER}\", \"--transport\", \"http-only\"],\n      \"env\": { \"AUTH_HEADER\": \"Bearer <DEVKITS_MCP_TOKEN>\" }\n    }\n  }\n}" }
+    },
+    {
+      "id": "other",
+      "name": "Client MCP khác",
+      "group": "mcp",
+      "package": "Streamable HTTP hoặc cầu nối mcp-remote",
+      "verified": true,
+      "docs": "https://github.com/geelen/mcp-remote",
+      "install": [],
+      "notes": ["Client hỗ trợ Streamable HTTP: URL {{URL}}, header Authorization: Bearer <token>.", "Client chỉ có stdio: dùng cầu nối mcp-remote; không để khoảng trắng quanh dấu : trong args."],
+      "mcpOnly": { "label": "Cấu hình stdio chung qua mcp-remote", "lang": "json", "file": "mcp-remote.json", "code": "{\n  \"mcpServers\": {\n    \"devkits\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"mcp-remote\", \"{{URL}}\", \"--header\", \"Authorization:${AUTH_HEADER}\", \"--transport\", \"http-only\"],\n      \"env\": { \"AUTH_HEADER\": \"Bearer <DEVKITS_MCP_TOKEN>\" }\n    }\n  }\n}" }
+    }
+  ]
+}
