@@ -15,7 +15,7 @@ export async function getJson<T>(url: string, headers: Record<string, string>, t
   try {
     res = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
   } catch (err) {
-    const reason = err instanceof Error && err.name === "TimeoutError" ? "timed out" : "network error";
+    const reason = err instanceof Error && err.name === "TimeoutError" ? "quá thời gian chờ" : "lỗi mạng";
     throw new IntegrationError(`${new URL(url).host}: ${reason}`);
   }
   if (!res.ok) {
@@ -26,7 +26,7 @@ export async function getJson<T>(url: string, headers: Record<string, string>, t
     } catch {
       // non-JSON error body
     }
-    throw new IntegrationError(`${new URL(url).host} returned ${res.status}${detail ? `: ${detail}` : ""}`, res.status);
+    throw new IntegrationError(`${new URL(url).host} trả về ${res.status}${detail ? `: ${detail}` : ""}`, res.status);
   }
   return (await res.json()) as T;
 }

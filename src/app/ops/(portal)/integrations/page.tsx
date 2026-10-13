@@ -1,5 +1,8 @@
-import { Placeholder } from "@/components/Placeholder";
+import type { Metadata } from "next";
+import { Integrations } from "@/components/ops/Integrations";
 
-export default function Page() {
-  return <Placeholder portal="ops" href="/ops/integrations" title="Tích hợp" />;
+export const metadata: Metadata = { title: "Tích hợp" };
+
+export default function OpsIntegrationsPage() {
+  return <Integrations />;
 }

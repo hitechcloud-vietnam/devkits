@@ -74,7 +74,7 @@ function AccountMenu({ portal, account }: { portal: AppShellProps["portal"]; acc
   return (
     <div ref={ref} className="relative">
       {open && (
-        <div role="menu" className="absolute bottom-full left-0 z-30 mb-2 w-full rounded-2xl border border-border bg-surface-overlay p-1 shadow-popover">
+        <div role="menu" className="menu-pop absolute bottom-full left-0 z-30 mb-2 w-full origin-bottom rounded-2xl border border-border bg-surface-overlay p-1 shadow-popover">
           <p className="flex min-w-0 px-3 py-2 text-xs text-muted" title={account.email}>
             <span className="min-w-0 truncate">{local}</span>
             <span className="shrink-0">@{domain}</span>

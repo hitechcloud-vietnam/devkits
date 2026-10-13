@@ -1,5 +1,8 @@
-import { Placeholder } from "@/components/Placeholder";
+import type { Metadata } from "next";
+import Chat from "@/components/user/Chat";
 
-export default function Page() {
-  return <Placeholder portal="user" href="/" title="Trò chuyện" />;
+export const metadata: Metadata = { title: "Trò chuyện" };
+
+export default function ChatPage() {
+  return <Chat />;
 }

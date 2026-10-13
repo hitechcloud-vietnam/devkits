@@ -9,7 +9,7 @@ const API = "https://api.vercel.com";
 
 export class VercelNotConfigured extends Error {
   constructor(missing: string) {
-    super(`Vercel integration is not configured: ${missing} is not set on the server.`);
+    super(`Chưa cấu hình Vercel: máy chủ chưa đặt ${missing}.`);
   }
 }
 

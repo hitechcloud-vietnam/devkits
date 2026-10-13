@@ -1,5 +1,8 @@
-import { Placeholder } from "@/components/Placeholder";
+import type { Metadata } from "next";
+import { Overview } from "@/components/ops/Overview";
 
-export default function Page() {
-  return <Placeholder portal="ops" href="/ops" title="Tổng quan" />;
+export const metadata: Metadata = { title: "Tổng quan" };
+
+export default function OpsOverviewPage() {
+  return <Overview />;
 }

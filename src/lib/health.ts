@@ -23,7 +23,7 @@ async function check(id: string, label: string, fn: () => Promise<{ status: Chec
   try {
     result = await fn();
   } catch (err) {
-    result = { status: "error", detail: err instanceof Error ? err.message : "Check failed" };
+    result = { status: "error", detail: err instanceof Error ? err.message : "Kiểm tra thất bại" };
   }
   return { id, label, ...result, checkedAt: new Date().toISOString() };
 }
@@ -35,28 +35,28 @@ export async function runHealthChecks(): Promise<HealthCheck[]> {
 
   const checks = await Promise.all([
     check("anthropic", "Claude API", async () => {
-      if (!ai.apiKeyPresent) return { status: "not_configured", detail: "Set ANTHROPIC_API_KEY" };
+      if (!ai.apiKeyPresent) return { status: "not_configured", detail: "Chưa đặt ANTHROPIC_API_KEY" };
       const model = await new Anthropic({ timeout: 10_000, maxRetries: 0 }).models.retrieve(ai.model);
       return {
         status: "connected",
-        detail: `${model.display_name} · effort ${ai.effort}${ai.webSearch ? " · web search on" : ""}`,
+        detail: `${model.display_name} · effort ${ai.effort}${ai.webSearch ? " · tìm kiếm web bật" : ""}`,
       };
     }),
     check("github", "GitHub", async () => {
       const repo = await github.repoOverview();
       return {
         status: "connected",
-        detail: `${repo.full_name} (${repo.private ? "private" : "public"})${gh.token ? "" : " · no token, rate-limited"}`,
+        detail: `${repo.full_name} (${repo.private ? "riêng tư" : "công khai"})${gh.token ? "" : " · chưa có token, bị giới hạn tốc độ"}`,
       };
     }),
     check("vercel", "Vercel", async () => {
-      if (!vc.token) return { status: "not_configured", detail: "Set VERCEL_TOKEN and VERCEL_PROJECT" };
+      if (!vc.token) return { status: "not_configured", detail: "Chưa đặt VERCEL_TOKEN và VERCEL_PROJECT" };
       if (!vc.project) {
         const user = await vercel.currentUser();
-        return { status: "not_configured", detail: `Token valid (${user.username}); set VERCEL_PROJECT` };
+        return { status: "not_configured", detail: `Token hợp lệ (${user.username}), chưa đặt VERCEL_PROJECT` };
       }
       const project = await vercel.projectInfo();
-      const prod = project.production?.state ? ` · production ${project.production.state}` : " · no production deployment";
+      const prod = project.production?.state ? ` · bản production ${project.production.state}` : " · chưa có bản production";
       return { status: "connected", detail: `${project.name}${prod}` };
     }),
     check("domain", "devkits.hitechcloud.vn", async () => {
@@ -69,11 +69,11 @@ export async function runHealthChecks(): Promise<HealthCheck[]> {
           cache: "no-store",
         });
       } catch {
-        return { status: "error", detail: "Not reachable over HTTPS (DNS, TLS or Vercel domain not configured)" };
+        return { status: "error", detail: "Chưa truy cập được qua HTTPS (DNS, TLS hoặc domain trên Vercel chưa cấu hình)" };
       }
       return res.status < 500
-        ? { status: "connected", detail: `HTTPS responds (${res.status})` }
-        : { status: "error", detail: `HTTPS responded ${res.status}` };
+        ? { status: "connected", detail: `HTTPS phản hồi (${res.status})` }
+        : { status: "error", detail: `HTTPS phản hồi lỗi ${res.status}` };
     }),
     check("database", "Cơ sở dữ liệu", async () => {
       const started = Date.now();

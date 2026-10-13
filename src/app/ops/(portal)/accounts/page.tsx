@@ -1,5 +1,13 @@
-import { Placeholder } from "@/components/Placeholder";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { Accounts } from "@/components/ops/Accounts";
 
-export default function Page() {
-  return <Placeholder portal="ops" href="/ops/accounts" title="Tài khoản" />;
+export const metadata: Metadata = { title: "Tài khoản" };
+
+export default function OpsAccountsPage() {
+  return (
+    <Suspense>
+      <Accounts />
+    </Suspense>
+  );
 }

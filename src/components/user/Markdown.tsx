@@ -1,15 +1,15 @@
 import { Fragment, type ReactNode } from "react";
 
-// Small, safe Markdown renderer: builds React elements (no innerHTML), so model
-// output can never inject markup. Covers what chat answers use: headings,
-// paragraphs, lists, fenced code, blockquotes, tables, rules, and inline
-// code/bold/italic/links.
+// Safe Markdown renderer for chat answers: builds React elements (no innerHTML), so
+// model output cannot inject markup. Headings, paragraphs, lists, fenced code,
+// blockquotes, tables, rules, and inline code/bold/italic/links.
 
 function safeHref(url: string): string | null {
   return /^(https?:|mailto:)/i.test(url) ? url : null;
 }
 
 const INLINE = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\[[^\]]+\]\([^)\s]+\))|(\*[^*\s][^*]*\*)|(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"])/g;
+const LINK = "font-medium text-primary underline-offset-4 hover:underline [overflow-wrap:anywhere]";
 
 function inline(text: string, keyBase: string): ReactNode[] {
   const out: ReactNode[] = [];
@@ -20,15 +20,20 @@ function inline(text: string, keyBase: string): ReactNode[] {
     if (idx > last) out.push(text.slice(last, idx));
     const k = `${keyBase}-${i++}`;
     const tok = m[0];
-    if (m[1]) out.push(<code key={k}>{tok.slice(1, -1)}</code>);
-    else if (m[2]) out.push(<strong key={k}>{inline(tok.slice(2, -2), k)}</strong>);
+    if (m[1]) {
+      out.push(
+        <code key={k} className="rounded bg-foreground/5 px-1 font-mono text-[14px] [overflow-wrap:anywhere]">
+          {tok.slice(1, -1)}
+        </code>,
+      );
+    } else if (m[2]) out.push(<strong key={k} className="font-semibold">{inline(tok.slice(2, -2), k)}</strong>);
     else if (m[3]) {
       const sep = tok.indexOf("](");
       const label = tok.slice(1, sep);
       const href = safeHref(tok.slice(sep + 2, -1));
       out.push(
         href ? (
-          <a key={k} href={href} target="_blank" rel="noopener noreferrer">
+          <a key={k} href={href} target="_blank" rel="noopener noreferrer" className={LINK}>
             {inline(label, k)}
           </a>
         ) : (
@@ -38,7 +43,7 @@ function inline(text: string, keyBase: string): ReactNode[] {
     } else if (m[4]) out.push(<em key={k}>{inline(tok.slice(1, -1), k)}</em>);
     else if (m[5]) {
       out.push(
-        <a key={k} href={tok} target="_blank" rel="noopener noreferrer">
+        <a key={k} href={tok} target="_blank" rel="noopener noreferrer" className={LINK}>
           {tok}
         </a>,
       );
@@ -53,7 +58,14 @@ const isTableRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
 const isTableSep = (l: string) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
 const cells = (l: string) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
 
-export default function Markdown({ text }: { text: string }) {
+const HEADING = {
+  h1: "text-lg font-semibold",
+  h2: "text-base font-semibold",
+  h3: "text-base font-semibold",
+  h4: "text-sm font-semibold",
+} as const;
+
+export default function Markdown({ text, cursor }: { text: string; cursor?: ReactNode }) {
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   const blocks: ReactNode[] = [];
   let i = 0;
@@ -70,7 +82,7 @@ export default function Markdown({ text }: { text: string }) {
       while (i < lines.length && !lines[i].trim().startsWith(fence[1])) body.push(lines[i++]);
       i++;
       blocks.push(
-        <pre key={k}>
+        <pre key={k} className="rounded-xl bg-background px-4 py-3 font-mono text-[13px] leading-6 whitespace-pre-wrap text-foreground [overflow-wrap:anywhere]">
           <code data-lang={fence[2] || undefined}>{body.join("\n")}</code>
         </pre>,
       );
@@ -83,13 +95,17 @@ export default function Markdown({ text }: { text: string }) {
     const heading = line.match(/^(#{1,6})\s+(.*)$/);
     if (heading) {
       const level = Math.min(heading[1].length, 4);
-      const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4";
-      blocks.push(<Tag key={k}>{inline(heading[2], k)}</Tag>);
+      const Tag = `h${level}` as keyof typeof HEADING;
+      blocks.push(
+        <Tag key={k} className={`${HEADING[Tag]} text-balance`}>
+          {inline(heading[2], k)}
+        </Tag>,
+      );
       i++;
       continue;
     }
     if (/^\s*(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/.test(line)) {
-      blocks.push(<hr key={k} />);
+      blocks.push(<hr key={k} className="border-border-strong" />);
       i++;
       continue;
     }
@@ -99,14 +115,26 @@ export default function Markdown({ text }: { text: string }) {
       const rows: string[][] = [];
       while (i < lines.length && isTableRow(lines[i])) rows.push(cells(lines[i++]));
       blocks.push(
-        <div className="table-wrap" key={k}>
-          <table>
-            <thead>
-              <tr>{head.map((c, j) => <th key={j}>{inline(c, `${k}h${j}`)}</th>)}</tr>
+        <div key={k} className="overflow-x-auto rounded-xl border border-border-strong">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-background">
+              <tr>
+                {head.map((c, j) => (
+                  <th key={j} className="px-3 py-2 font-medium">
+                    {inline(c, `${k}h${j}`)}
+                  </th>
+                ))}
+              </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border-strong">
               {rows.map((r, ri) => (
-                <tr key={ri}>{r.map((c, j) => <td key={j}>{inline(c, `${k}r${ri}c${j}`)}</td>)}</tr>
+                <tr key={ri}>
+                  {r.map((c, j) => (
+                    <td key={j} className="px-3 py-2 align-top">
+                      {inline(c, `${k}r${ri}c${j}`)}
+                    </td>
+                  ))}
+                </tr>
               ))}
             </tbody>
           </table>
@@ -118,7 +146,7 @@ export default function Markdown({ text }: { text: string }) {
       const body: string[] = [];
       while (i < lines.length && /^\s*>/.test(lines[i])) body.push(lines[i++].replace(/^\s*>\s?/, ""));
       blocks.push(
-        <blockquote key={k}>
+        <blockquote key={k} className="border-l-2 border-border-strong pl-3 text-muted">
           <Markdown text={body.join("\n")} />
         </blockquote>,
       );
@@ -139,7 +167,7 @@ export default function Markdown({ text }: { text: string }) {
       }
       const List = ordered ? "ol" : "ul";
       blocks.push(
-        <List key={k}>
+        <List key={k} className={`space-y-1 pl-5 ${ordered ? "list-decimal" : "list-disc"} marker:text-muted`}>
           {items.map((it, j) => (
             <li key={j}>
               {it.split("\n").map((part, pi) => (
@@ -175,5 +203,10 @@ export default function Markdown({ text }: { text: string }) {
     );
   }
 
-  return <div className="md">{blocks}</div>;
+  return (
+    <div className="min-w-0 space-y-3 text-base text-pretty [overflow-wrap:anywhere]">
+      {blocks}
+      {cursor}
+    </div>
+  );
 }
