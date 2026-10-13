@@ -27,3 +27,16 @@ export function getVercelConfig() {
     teamId: process.env.VERCEL_TEAM_ID || undefined,
   };
 }
+
+/**
+ * Bearer tokens accepted by /api/mcp. Comma-separated so each agent/client can
+ * get its own token and be revoked independently. Tokens shorter than 32
+ * characters are ignored.
+ */
+export function getMcpConfig() {
+  const tokens = (process.env.DEVKITS_MCP_TOKENS ?? "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 32);
+  return { tokens };
+}

@@ -61,6 +61,15 @@ const TOOLS = {
 
 export type ToolName = keyof typeof TOOLS;
 
+/** Tool specs for other transports (the MCP endpoint). */
+export function toolSpecs(): { name: ToolName; description: string; schema: z.ZodObject }[] {
+  return Object.entries(TOOLS).map(([name, t]) => ({
+    name: name as ToolName,
+    description: t.description,
+    schema: t.schema as unknown as z.ZodObject,
+  }));
+}
+
 export function isClientTool(name: string): name is ToolName {
   return Object.hasOwn(TOOLS, name);
 }

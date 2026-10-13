@@ -28,6 +28,7 @@ function url(path: string, params: Record<string, string | undefined> = {}) {
 }
 
 function projectRef(project?: string): string {
+  auth(); // report a missing token before a missing project
   const p = project || getVercelConfig().project;
   if (!p) throw new VercelNotConfigured("VERCEL_PROJECT");
   return encodeURIComponent(p);

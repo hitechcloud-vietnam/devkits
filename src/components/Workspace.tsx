@@ -31,7 +31,7 @@ interface Conversation {
 interface HealthCheck {
   id: string;
   label: string;
-  status: "connected" | "not_configured" | "error";
+  status: "connected" | "configured" | "not_configured" | "error";
   detail: string;
   checkedAt: string;
 }
@@ -79,6 +79,13 @@ const TOOL_LABELS: Record<string, string> = {
   vercel_list_deployments: "Vercel · deployments",
   vercel_build_log: "Vercel · build log",
   web_search: "Tìm kiếm web",
+};
+
+const STATUS_LABELS: Record<HealthCheck["status"], string> = {
+  connected: "Đã kết nối (kiểm tra trực tiếp)",
+  configured: "Đã cấu hình",
+  not_configured: "Chưa cấu hình",
+  error: "Lỗi",
 };
 
 const SUGGESTIONS = [
@@ -462,7 +469,7 @@ export default function Workspace() {
                 <strong>{c.label}</strong>
                 <span>{c.detail}</span>
                 <div className="st">
-                  {c.status === "connected" ? "Đã kết nối" : c.status === "not_configured" ? "Chưa cấu hình" : "Lỗi"} ·{" "}
+                  {STATUS_LABELS[c.status]} ·{" "}
                   {new Date(c.checkedAt).toLocaleTimeString("vi-VN")}
                 </div>
               </div>

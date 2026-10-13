@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, authConfigured, verifySessionToken } from "@/lib/session";
 
-// Every page and API route requires a valid session, except the login flow.
-const PUBLIC_PATHS = new Set(["/login", "/api/auth/login"]);
+// Every page and API route requires a valid session, except the login flow and
+// the MCP endpoint, which authenticates agents with its own bearer tokens.
+const PUBLIC_PATHS = new Set(["/login", "/api/auth/login", "/api/mcp"]);
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
