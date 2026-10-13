@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "devkits": {
+      "type": "remote",
+      "url": "https://devkits.hitechcloud.vn/api/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": { "Authorization": "Bearer {env:DEVKITS_MCP_TOKEN}" }
+    }
+  }
+}

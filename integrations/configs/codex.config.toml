@@ -1,0 +1,3 @@
+[mcp_servers.devkits]
+url = "https://devkits.hitechcloud.vn/api/mcp"
+bearer_token_env_var = "DEVKITS_MCP_TOKEN"

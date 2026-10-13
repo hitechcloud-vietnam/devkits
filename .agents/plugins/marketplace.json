@@ -1,0 +1,20 @@
+{
+  "name": "devkits",
+  "interface": {
+    "displayName": "HiTechCloud DevKits"
+  },
+  "plugins": [
+    {
+      "name": "devkits",
+      "source": {
+        "source": "local",
+        "path": "./plugins/devkits"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

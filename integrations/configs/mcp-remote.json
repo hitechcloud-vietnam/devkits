@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "devkits": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://devkits.hitechcloud.vn/api/mcp", "--header", "Authorization:${AUTH_HEADER}", "--transport", "http-only"],
+      "env": { "AUTH_HEADER": "Bearer <DEVKITS_MCP_TOKEN>" }
+    }
+  }
+}

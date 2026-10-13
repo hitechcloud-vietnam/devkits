@@ -1,0 +1,17 @@
+{
+  "name": "devkits",
+  "owner": {
+    "name": "HiTechCloud",
+    "email": "support@hitechcloud.vn"
+  },
+  "metadata": {
+    "description": "HiTechCloud DevKits plugins"
+  },
+  "plugins": [
+    {
+      "name": "devkits",
+      "source": "plugins/devkits",
+      "description": "MCP tools and skills for HostBill, WHMCS and WordPress integrations, plus DevKits workspace status."
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "devkits": {
+      "url": "https://devkits.hitechcloud.vn/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${DEVKITS_MCP_TOKEN}"
+      }
+    }
+  }
+}

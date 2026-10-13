@@ -1,0 +1,37 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "devkits",
+  "version": "0.1.0",
+  "description": "HiTechCloud DevKits: MCP tools and skills for building, auditing and shipping HostBill, WHMCS and WordPress integrations with any AI agent.",
+  "author": {
+    "name": "HiTechCloud (Pho Tue SoftWare And Technology Solutions JSC)",
+    "email": "support@hitechcloud.vn",
+    "url": "https://hitechcloud.vn"
+  },
+  "homepage": "https://devkits.hitechcloud.vn",
+  "repository": "https://github.com/hitechcloud-vietnam/devkits",
+  "license": "MIT",
+  "keywords": [
+    "hitechcloud",
+    "devkits",
+    "mcp",
+    "hostbill",
+    "whmcs",
+    "vercel"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "HiTechCloud DevKits",
+        "shortDescription": "Build and ship HostBill, WHMCS and WordPress integrations",
+        "developerName": "HiTechCloud",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read"
+        ],
+        "websiteURL": "https://devkits.hitechcloud.vn",
+        "brandColor": "#0B5FFF"
+      }
+    }
+  }
+}
