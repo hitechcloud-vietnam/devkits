@@ -1,6 +1,8 @@
 import "server-only";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { getDb } from "@/lib/db/client";
+import { recordUsage } from "@/lib/db/repo";
 import { runHealthChecks } from "@/lib/health";
 import { runTool, toolSpecs } from "@/lib/tools";
 
@@ -13,7 +15,13 @@ const INSTRUCTIONS = `HiTechCloud DevKits MCP server. Every tool is read-only: i
  * Builds a fresh MCP server. The endpoint is stateless (one server per HTTP
  * request), which fits serverless functions and needs no session store.
  */
-export function createMcpServer(): McpServer {
+export function createMcpServer(caller: { userId: string | null } = { userId: null }): McpServer {
+  // One usage row per tool call; failures to record never fail the call itself.
+  const track = (tool: string) =>
+    getDb()
+      .then((db) => recordUsage(db, { userId: caller.userId, kind: "mcp", tool }))
+      .catch((err) => console.error("mcp usage record failed", err instanceof Error ? err.message : err));
+
   const server = new McpServer({ name: MCP_SERVER_NAME, version: MCP_SERVER_VERSION }, { instructions: INSTRUCTIONS });
 
   for (const spec of toolSpecs()) {
@@ -26,6 +34,7 @@ export function createMcpServer(): McpServer {
       },
       async (input: unknown) => {
         const outcome = await runTool(spec.name, input);
+        await track(spec.name);
         return { content: [{ type: "text" as const, text: outcome.content }], isError: !outcome.ok };
       },
     );
@@ -38,7 +47,10 @@ export function createMcpServer(): McpServer {
       inputSchema: {},
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },
-    async () => ({ content: [{ type: "text" as const, text: JSON.stringify(await runHealthChecks(), null, 2) }] }),
+    async () => {
+      await track("devkits_workspace_status");
+      return { content: [{ type: "text" as const, text: JSON.stringify(await runHealthChecks(), null, 2) }] };
+    },
   );
 
   // Reusable workflows exposed as MCP prompts (slash commands in most clients).

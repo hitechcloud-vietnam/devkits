@@ -1,6 +1,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { getAiConfig, getGithubConfig, getMcpConfig, getVercelConfig } from "@/lib/config";
+import { getDb } from "@/lib/db/client";
 import * as github from "@/lib/integrations/github";
 import * as vercel from "@/lib/integrations/vercel";
 
@@ -74,11 +75,24 @@ export async function runHealthChecks(): Promise<HealthCheck[]> {
         ? { status: "connected", detail: `HTTPS responds (${res.status})` }
         : { status: "error", detail: `HTTPS responded ${res.status}` };
     }),
+    check("database", "Cơ sở dữ liệu", async () => {
+      const started = Date.now();
+      const db = await getDb();
+      await db.query("select 1");
+      const kind = process.env.DATABASE_URL ? "Postgres (DATABASE_URL)" : "PGlite cục bộ (chỉ dùng khi phát triển)";
+      return { status: "connected", detail: `${kind} · ${Date.now() - started} ms` };
+    }),
     check("mcp", "MCP endpoint", async () => {
-      const n = getMcpConfig().tokens.length;
-      return n
-        ? { status: "configured", detail: `/api/mcp enabled · ${n} client token${n === 1 ? "" : "s"}` }
-        : { status: "not_configured", detail: "Set DEVKITS_MCP_TOKENS to let agents connect" };
+      const db = await getDb();
+      const [r] = await db.query<{ n: string }>(
+        "select count(*) as n from mcp_tokens where revoked_at is null and (expires_at is null or expires_at > now())",
+      );
+      const personal = Number(r.n);
+      const service = getMcpConfig().tokens.length;
+      return {
+        status: "configured",
+        detail: `/api/mcp · ${personal} token cá nhân đang hiệu lực${service ? ` · ${service} token dịch vụ` : ""}`,
+      };
     }),
   ]);
 

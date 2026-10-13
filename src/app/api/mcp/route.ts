@@ -1,11 +1,14 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { getMcpConfig } from "@/lib/config";
+import { getDb } from "@/lib/db/client";
+import { authenticateToken } from "@/lib/db/repo";
 import { createMcpServer } from "@/lib/mcp";
 import { safeEqual } from "@/lib/session";
 
-// Remote MCP endpoint (Streamable HTTP) for Claude Code, Cursor, Codex,
-// OpenCode, Antigravity, VS Code, Gemini CLI and any other MCP client.
-// Authenticated with per-client bearer tokens from DEVKITS_MCP_TOKENS.
+// Remote MCP endpoint (Streamable HTTP) for Claude Code, Cursor, Codex, OpenCode,
+// Antigravity, VS Code, Gemini CLI and any other MCP client. Accepts personal tokens
+// created in the user portal (stored hashed in the database) and optional service
+// tokens from DEVKITS_MCP_TOKENS for automation.
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -17,22 +20,27 @@ function unauthorized(message: string, status = 401) {
   );
 }
 
-async function authorized(request: Request): Promise<Response | null> {
-  const { tokens } = getMcpConfig();
-  if (tokens.length === 0) return unauthorized("MCP endpoint is not configured on this server (DEVKITS_MCP_TOKENS).", 503);
-  const header = request.headers.get("authorization") ?? "";
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  if (!match) return unauthorized("Missing bearer token.");
-  // Compare against every token (no early exit) to keep timing uniform.
-  const results = await Promise.all(tokens.map((t) => safeEqual(match[1].trim(), t)));
-  return results.some(Boolean) ? null : unauthorized("Invalid bearer token.");
+/** Returns the caller's user id ("" for a service token), or a Response to send back. */
+async function identify(request: Request): Promise<string | Response> {
+  const match = (request.headers.get("authorization") ?? "").match(/^Bearer\s+(\S+)\s*$/i);
+  if (!match) return unauthorized("Missing bearer token. Create one at devkits.hitechcloud.vn → Kết nối agent.");
+  const presented = match[1];
+
+  const db = await getDb();
+  const owner = await authenticateToken(db, presented);
+  if (owner) return owner.user.id;
+
+  // Compare against every service token (no early exit) to keep timing uniform.
+  const service = await Promise.all(getMcpConfig().tokens.map((t) => safeEqual(presented, t)));
+  if (service.some(Boolean)) return "";
+  return unauthorized("Invalid, expired or revoked token.");
 }
 
 async function handle(request: Request): Promise<Response> {
-  const denied = await authorized(request);
-  if (denied) return denied;
+  const caller = await identify(request);
+  if (caller instanceof Response) return caller;
 
-  const server = createMcpServer();
+  const server = createMcpServer({ userId: caller || null });
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless
     enableJsonResponse: true,

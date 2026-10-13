@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // PGlite ships WASM and data files; load it from node_modules instead of bundling.
+  serverExternalPackages: ["@electric-sql/pglite"],
   async headers() {
     return [
       {

@@ -1,17 +1,19 @@
 import type { BetaMessageParam } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { runAgent, type AgentEvent } from "@/lib/agent";
+import { getCurrentUser, sameOrigin, unauthorized } from "@/lib/auth";
+import { getDb } from "@/lib/db/client";
+import { recordUsage } from "@/lib/db/repo";
 import { validateHistory } from "@/lib/history";
+import { costMicros } from "@/lib/pricing";
 
 // Long agentic turns: allow up to 5 minutes on Vercel Functions.
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  // Same-origin check on top of the SameSite session cookie.
-  const origin = request.headers.get("origin");
-  if (origin && new URL(origin).host !== new URL(request.url).host) {
-    return Response.json({ error: "Cross-origin request rejected" }, { status: 403 });
-  }
+  if (!sameOrigin(request)) return Response.json({ error: "Cross-origin request rejected" }, { status: 403 });
+  const user = await getCurrentUser();
+  if (!user) return unauthorized();
 
   let body: { messages?: unknown };
   try {
@@ -27,10 +29,22 @@ export async function POST(request: Request) {
     async start(controller) {
       const send = (event: AgentEvent) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       try {
-        for await (const event of runAgent(body.messages as BetaMessageParam[], request.signal)) send(event);
+        for await (const event of runAgent(body.messages as BetaMessageParam[], request.signal)) {
+          send(event);
+          if (event.type === "done") {
+            const db = await getDb();
+            await recordUsage(db, {
+              userId: user.id,
+              kind: "chat",
+              inputTokens: event.usage.input,
+              outputTokens: event.usage.output,
+              costMicros: costMicros(event.model, event.usage.input, event.usage.output),
+            }).catch((err) => console.error("usage record failed", err instanceof Error ? err.message : err));
+          }
+        }
       } catch (err) {
         console.error("chat stream failed", err instanceof Error ? err.message : err);
-        send({ type: "error", message: "Unexpected server error.", retryable: true });
+        send({ type: "error", message: "Lỗi máy chủ. Thử lại sau ít phút.", retryable: true });
       } finally {
         controller.close();
       }

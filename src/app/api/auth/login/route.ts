@@ -1,35 +1,29 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, SESSION_TTL_MS, authConfigured, createSessionToken, safeEqual } from "@/lib/session";
+import { failedLoginDelay, sameOrigin, startSession } from "@/lib/auth";
+import { verifyPassword } from "@/lib/crypto";
+import { getDb } from "@/lib/db/client";
+import * as repo from "@/lib/db/repo";
+import { authConfigured } from "@/lib/session";
 
+// User portal sign-in (email + password). Operators sign in at /api/ops/auth/login.
 export async function POST(request: Request) {
+  if (!sameOrigin(request)) return NextResponse.json({ error: "Yêu cầu không hợp lệ." }, { status: 403 });
   if (!authConfigured(process.env)) {
-    return NextResponse.json(
-      { error: "Login is not configured. Set DEVKITS_ACCESS_PASSWORD and DEVKITS_SESSION_SECRET (32+ chars)." },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "Máy chủ chưa cấu hình DEVKITS_SESSION_SECRET (tối thiểu 32 ký tự)." }, { status: 503 });
   }
+  const body = (await request.json().catch(() => ({}))) as { email?: unknown; password?: unknown };
+  const email = typeof body.email === "string" ? body.email : "";
+  const password = typeof body.password === "string" ? body.password : "";
 
-  let password = "";
-  try {
-    const body = (await request.json()) as { password?: unknown };
-    if (typeof body.password === "string") password = body.password;
-  } catch {
-    // fall through with empty password
+  const db = await getDb();
+  const user = email ? await repo.getUserForLogin(db, email) : null;
+  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    await failedLoginDelay();
+    return NextResponse.json({ error: "Email hoặc mật khẩu không đúng." }, { status: 401 });
   }
-
-  if (!password || !(await safeEqual(password, process.env.DEVKITS_ACCESS_PASSWORD!))) {
-    // Slow down guessing; serverless instances do not share state, so this is a deterrent, not a lockout.
-    await new Promise((r) => setTimeout(r, 800));
-    return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
+  if (user.status === "suspended") {
+    return NextResponse.json({ error: "Tài khoản đang tạm khoá. Liên hệ người vận hành DevKits." }, { status: 403 });
   }
-
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(SESSION_COOKIE, await createSessionToken(process.env.DEVKITS_SESSION_SECRET!), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: SESSION_TTL_MS / 1000,
-  });
-  return res;
+  await repo.touchUser(db, user.id);
+  return startSession(NextResponse.json({ ok: true }), "user", user.id);
 }

@@ -1,24 +1,35 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, authConfigured, verifySessionToken } from "@/lib/session";
+import { SESSION_COOKIES, authConfigured, verifySessionToken, type Portal } from "@/lib/session";
 
-// Every page and API route requires a valid session, except the login flow and
-// the MCP endpoint, which authenticates agents with its own bearer tokens.
-const PUBLIC_PATHS = new Set(["/login", "/api/auth/login", "/api/mcp"]);
+// Two independent portals, each with its own login and cookie:
+//   user portal      → /, /agent, /api/chat, /api/me/*        (cookie dk_user)
+//   operator portal  → /ops/*, /api/ops/*                      (cookie dk_ops)
+// /api/mcp authenticates agents with bearer tokens instead.
+const PUBLIC_PATHS = new Set([
+  "/login",
+  "/accept-invite",
+  "/api/auth/login",
+  "/api/auth/accept",
+  "/api/mcp",
+  "/ops/login",
+  "/api/ops/auth/login",
+]);
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
   if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
 
+  const portal: Portal = pathname === "/ops" || pathname.startsWith("/ops/") || pathname.startsWith("/api/ops/") ? "ops" : "user";
   const ok =
     authConfigured(process.env) &&
-    (await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value, process.env.DEVKITS_SESSION_SECRET!));
+    (await verifySessionToken(request.cookies.get(SESSION_COOKIES[portal])?.value, process.env.DEVKITS_SESSION_SECRET!, portal)) !== null;
   if (ok) return NextResponse.next();
 
   if (pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const login = new URL("/login", request.url);
-  if (pathname !== "/") login.searchParams.set("next", pathname);
+  const login = new URL(portal === "ops" ? "/ops/login" : "/login", request.url);
+  if (pathname !== "/" && pathname !== "/ops") login.searchParams.set("next", `${pathname}${search}`);
   return NextResponse.redirect(login);
 }
 
